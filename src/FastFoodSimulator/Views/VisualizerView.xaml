@@ -1,0 +1,150 @@
+<UserControl x:Class="FastFoodSimulator.Views.VisualizerView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:FastFoodSimulator.ViewModels">
+
+    <UserControl.Resources>
+        <Style x:Key="ZoneTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="Bold" />
+        </Style>
+
+        <Style x:Key="ZoneSubtitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="#4B5563" />
+        </Style>
+
+        <Style x:Key="CounterBadge" TargetType="Border">
+            <Setter Property="Width" Value="230" />
+            <Setter Property="Height" Value="40" />
+            <Setter Property="CornerRadius" Value="20" />
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.3" />
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="CounterLabel" TargetType="TextBlock">
+            <Setter Property="Margin" Value="18,0,0,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+
+        <Style x:Key="CounterValueCircle" TargetType="Border">
+            <Setter Property="Width" Value="30" />
+            <Setter Property="Height" Value="30" />
+            <Setter Property="CornerRadius" Value="15" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="HorizontalAlignment" Value="Right" />
+            <Setter Property="Margin" Value="0,0,5,0" />
+        </Style>
+
+        <Style x:Key="CounterValue" TargetType="TextBlock">
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="Bold" />
+        </Style>
+    </UserControl.Resources>
+
+    <GroupBox Header="Simulation Flow" Padding="6">
+        <Viewbox Stretch="Uniform">
+            <Grid Width="970" Height="372">
+                <Canvas>
+                    <Ellipse Canvas.Left="20" Canvas.Top="10" Width="14" Height="14" Fill="#93C5FD" Stroke="#374151" />
+                    <TextBlock Canvas.Left="40" Canvas.Top="9" FontSize="11" Text="Customer in line" />
+                    <Rectangle Canvas.Left="180" Canvas.Top="10" Width="14" Height="14" Fill="#FDBA74" Stroke="#374151" />
+                    <TextBlock Canvas.Left="200" Canvas.Top="9" FontSize="11" Text="Taking order" />
+                    <Rectangle Canvas.Left="340" Canvas.Top="10" Width="14" Height="14" Fill="#FDE68A" Stroke="#374151" />
+                    <TextBlock Canvas.Left="360" Canvas.Top="9" FontSize="11" Text="Ticket waiting" />
+                    <Rectangle Canvas.Left="500" Canvas.Top="10" Width="14" Height="14" Fill="#FCA5A5" Stroke="#374151" />
+                    <TextBlock Canvas.Left="520" Canvas.Top="9" FontSize="11" Text="Cooking" />
+                    <Ellipse Canvas.Left="660" Canvas.Top="10" Width="14" Height="14" Fill="#86EFAC" Stroke="#374151" />
+                    <TextBlock Canvas.Left="680" Canvas.Top="9" FontSize="11" Text="Customer awaiting order" />
+                    <Rectangle Canvas.Left="840" Canvas.Top="10" Width="14" Height="14" Fill="#6EE7B7" Stroke="#374151" />
+                    <TextBlock Canvas.Left="860" Canvas.Top="9" FontSize="11" Text="Ready order" />
+
+                    <Rectangle Canvas.Left="20" Canvas.Top="40" Width="290" Height="320"
+                               Fill="#EFF6FF" Stroke="#93C5FD" StrokeThickness="2" RadiusX="8" RadiusY="8" />
+                    <TextBlock Canvas.Left="30" Canvas.Top="46" Text="ORDER LINE AREA" Style="{StaticResource ZoneTitle}" />
+                    <TextBlock Canvas.Left="30" Canvas.Top="66" Text="Customers waiting to order" Style="{StaticResource ZoneSubtitle}" />
+                    <TextBlock Canvas.Left="30" Canvas.Top="200" Text="Order takers" Style="{StaticResource ZoneSubtitle}" />
+                    <Border Canvas.Left="50" Canvas.Top="306" Background="#2563EB" Style="{StaticResource CounterBadge}">
+                        <Grid>
+                            <TextBlock Text="Customers waiting" Style="{StaticResource CounterLabel}" />
+                            <Border Style="{StaticResource CounterValueCircle}">
+                                <TextBlock Text="{Binding OrderLineCount}" Foreground="#2563EB" Style="{StaticResource CounterValue}" />
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <Rectangle Canvas.Left="340" Canvas.Top="40" Width="290" Height="320"
+                               Fill="#FFFBEB" Stroke="#FCD34D" StrokeThickness="2" RadiusX="8" RadiusY="8" />
+                    <TextBlock Canvas.Left="350" Canvas.Top="46" Text="KITCHEN AREA" Style="{StaticResource ZoneTitle}" />
+                    <TextBlock Canvas.Left="350" Canvas.Top="66" Text="Carousel" Style="{StaticResource ZoneSubtitle}" />
+                    <TextBlock Canvas.Left="350" Canvas.Top="200" Text="Cooks" Style="{StaticResource ZoneSubtitle}" />
+                    <Border Canvas.Left="370" Canvas.Top="306" Background="#D97706" Style="{StaticResource CounterBadge}">
+                        <Grid>
+                            <TextBlock Text="Waiting orders" Style="{StaticResource CounterLabel}" />
+                            <Border Style="{StaticResource CounterValueCircle}">
+                                <TextBlock Text="{Binding WaitingOrdersCount}" Foreground="#D97706" Style="{StaticResource CounterValue}" />
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <Rectangle Canvas.Left="660" Canvas.Top="40" Width="290" Height="320"
+                               Fill="#F0FDF4" Stroke="#86EFAC" StrokeThickness="2" RadiusX="8" RadiusY="8" />
+                    <TextBlock Canvas.Left="670" Canvas.Top="46" Text="PICKUP AREA" Style="{StaticResource ZoneTitle}" />
+                    <TextBlock Canvas.Left="670" Canvas.Top="66" Text="Serving line" Style="{StaticResource ZoneSubtitle}" />
+                    <TextBlock Canvas.Left="670" Canvas.Top="200" Text="Counter" Style="{StaticResource ZoneSubtitle}" />
+                    <Border Canvas.Left="690" Canvas.Top="306" Background="#16A34A" Style="{StaticResource CounterBadge}">
+                        <Grid>
+                            <TextBlock Text="Waiting in serving line" Style="{StaticResource CounterLabel}" />
+                            <Border Style="{StaticResource CounterValueCircle}">
+                                <TextBlock Text="{Binding ServingLineCount}" Foreground="#16A34A" Style="{StaticResource CounterValue}" />
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <TextBlock Canvas.Left="313" Canvas.Top="180" Text="➜" FontSize="24" Foreground="#9CA3AF" />
+                    <TextBlock Canvas.Left="633" Canvas.Top="180" Text="➜" FontSize="24" Foreground="#9CA3AF" />
+                </Canvas>
+
+                <ItemsControl ItemsSource="{Binding Visualizer.Tokens}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <Canvas />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+
+                    <ItemsControl.ItemContainerStyle>
+                        <Style TargetType="ContentPresenter">
+                            <Setter Property="Canvas.Left" Value="{Binding X}" />
+                            <Setter Property="Canvas.Top" Value="{Binding Y}" />
+                        </Style>
+                    </ItemsControl.ItemContainerStyle>
+
+                    <ItemsControl.Resources>
+                        <DataTemplate DataType="{x:Type vm:CircleToken}">
+                            <Grid Width="32" Height="32">
+                                <Ellipse Fill="{Binding Fill}" Stroke="#374151" StrokeThickness="1.5" />
+                                <TextBlock Text="{Binding Label}" FontSize="11" FontWeight="SemiBold"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Grid>
+                        </DataTemplate>
+                        <DataTemplate DataType="{x:Type vm:SquareToken}">
+                            <Grid Width="32" Height="32">
+                                <Rectangle Fill="{Binding Fill}" Stroke="#374151" StrokeThickness="1.5" RadiusX="4" RadiusY="4" />
+                                <TextBlock Text="{Binding Label}" FontSize="11" FontWeight="SemiBold"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.Resources>
+                </ItemsControl>
+            </Grid>
+        </Viewbox>
+    </GroupBox>
+</UserControl>
