@@ -26,8 +26,6 @@ public sealed class SimulationEngine : ISimulationEngine
 
     public event Action<SimulationSnapshot>? SnapshotPublished;
 
-    public event Action<LogEntry>? LogWritten;
-
     public bool IsRunning => _isRunning;
 
     public void Start(SimulationSettings settings)
@@ -63,7 +61,6 @@ public sealed class SimulationEngine : ISimulationEngine
 
         _workers = Task.WhenAll(workers);
 
-        Log(0, "Simulation started");
         Publish();
     }
 
@@ -83,7 +80,6 @@ public sealed class SimulationEngine : ISimulationEngine
         _cts = null;
         _isRunning = false;
 
-        Log(0, "Simulation stopped");
         Publish();
     }
 
@@ -136,7 +132,6 @@ public sealed class SimulationEngine : ISimulationEngine
             _customerTasks[customer.Id] = task;
             _ = task.ContinueWith(_ => _customerTasks.TryRemove(customer.Id, out Task? _), TaskScheduler.Default);
 
-            Log(0, $"Customer C{customer.Id} arrived and joined the order line");
             Publish();
         }
     }
@@ -146,7 +141,6 @@ public sealed class SimulationEngine : ISimulationEngine
         var order = await customer.Receipt.Task.WaitAsync(ct);
 
         _servingLine.Enqueue(order);
-        Log(2, $"Customer C{customer.Id} paid and moved to the end of the serving line (order #{order.Id})");
         Publish();
         customer.InServingLine.TrySetResult();
 
@@ -156,7 +150,6 @@ public sealed class SimulationEngine : ISimulationEngine
         _pickupCounter.TryRemove(order.Id, out _);
         _servingLine.Remove(order);
         order.State = OrderState.PickedUp;
-        Log(9, $"Customer C{customer.Id} picked up order #{order.Id} and went to the dining area");
         Publish();
     }
 
@@ -172,14 +165,12 @@ public sealed class SimulationEngine : ISimulationEngine
 
             await Task.Delay(settings.OrderTakingIntervalMs, ct);
 
-            Log(1, $"Order Taker {index} created ticket #{order.Id} for customer C{customer.Id} and gave the receipt");
             customer.Receipt.TrySetResult(order);
 
             await customer.InServingLine.Task.WaitAsync(ct);
 
             order.State = OrderState.OnCarousel;
             _carousel.Enqueue(order);
-            Log(3, $"Order Taker {index} placed ticket #{order.Id} on the kitchen carousel");
 
             _takerOrders[index - 1] = 0;
             Publish();
@@ -195,15 +186,12 @@ public sealed class SimulationEngine : ISimulationEngine
             order.State = OrderState.Preparing;
             _serverIntake.Enqueue(order);
             _cookOrders[index - 1] = order.Id;
-            Log(4, $"Cook {index} removed ticket #{order.Id} from the carousel");
-            Log(5, $"Cook {index} is preparing order #{order.Id}");
             Publish();
 
             await Task.Delay(settings.OrderFulfillmentIntervalMs, ct);
 
             order.State = OrderState.Prepared;
             _cookOrders[index - 1] = 0;
-            Log(6, $"Cook {index} finished order #{order.Id} and handed it with the ticket to the server");
             order.KitchenPromise.TrySetResult();
             Publish();
         }
@@ -216,19 +204,14 @@ public sealed class SimulationEngine : ISimulationEngine
             var order = await _serverIntake.DequeueAsync(ct);
             await order.KitchenPromise.Task.WaitAsync(ct);
 
-            Log(7, $"Server took order #{order.Id} and its ticket from the cook");
 
             order.State = OrderState.ReadyForPickup;
             _pickupCounter[order.Id] = 0;
-            Log(8, $"Server called out order #{order.Id} and placed it on the counter");
             Publish();
 
             order.CustomerPromise.TrySetResult();
         }
     }
-
-    private void Log(int step, string message) =>
-        LogWritten?.Invoke(new LogEntry(DateTime.Now, step, message));
 
     private void Publish()
     {

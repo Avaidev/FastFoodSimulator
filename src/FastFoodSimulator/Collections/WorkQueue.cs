@@ -7,8 +7,6 @@ public sealed class WorkQueue<T>
     private readonly ConcurrentQueue<T> _items = new();
     private readonly SemaphoreSlim _signal = new(0);
 
-    public int Count => _items.Count;
-
     public void Enqueue(T item)
     {
         _items.Enqueue(item);

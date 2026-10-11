@@ -99,7 +99,7 @@
                                Fill="#F0FDF4" Stroke="#86EFAC" StrokeThickness="2" RadiusX="8" RadiusY="8" />
                     <TextBlock Canvas.Left="670" Canvas.Top="46" Text="PICKUP AREA" Style="{StaticResource ZoneTitle}" />
                     <TextBlock Canvas.Left="670" Canvas.Top="66" Text="Serving line" Style="{StaticResource ZoneSubtitle}" />
-                    <TextBlock Canvas.Left="670" Canvas.Top="200" Text="Counter" Style="{StaticResource ZoneSubtitle}" />
+                    <TextBlock Canvas.Left="670" Canvas.Top="200" Text="Server" Style="{StaticResource ZoneSubtitle}" />
                     <Border Canvas.Left="690" Canvas.Top="306" Background="#16A34A" Style="{StaticResource CounterBadge}">
                         <Grid>
                             <TextBlock Text="Waiting in serving line" Style="{StaticResource CounterLabel}" />
