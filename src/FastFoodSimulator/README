@@ -1,0 +1,295 @@
+﻿```markdown
+# Fast Food Simulator
+
+WPF-приложение на .NET 9, моделирующее работу фастфуд-ресторана в реальном времени. Проект демонстрирует конкурентное программирование, паттерн Producer-Consumer, MVVM и асинхронную обработку данных.
+
+![.NET](https://img.shields.io/badge/.NET-9.0-purple)
+![WPF](https://img.shields.io/badge/WPF-Windows-blue)
+
+---
+
+## Содержание
+
+- [О проекте](#о-проекте)
+- [Возможности](#возможности)
+- [Архитектура](#архитектура)
+- [Как это работает](#как-это-работает)
+- [Требования](#требования)
+- [Сборка и запуск](#сборка-и-запуск)
+- [Настройки](#настройки)
+- [Структура проекта](#структура-проекта)
+- [Ключевые технические решения](#ключевые-технические-решения)
+
+---
+
+## О проекте
+
+**Fast Food Simulator** — визуальная симуляция работы ресторана быстрого питания. Вы настраиваете параметры (интервалы прихода клиентов, скорость работы кассиров и поваров, их количество), запускаете симуляцию и наблюдаете в реальном времени, как клиенты встают в очередь, обслуживаются кассирами, готовятся поварами и забирают заказы.
+
+Проект создан как учебный пример использования:
+
+- **Producer-Consumer** через `ConcurrentQueue<T>` + `SemaphoreSlim`.
+- **TaskCompletionSource** для синхронизации между этапами.
+- **MVVM** с асинхронными командами.
+- **Снимков состояния** (snapshots) для потокобезопасного обновления UI.
+
+---
+
+## Возможности
+
+- 🎛️ **Гибкая настройка**: интервалы прихода клиентов, время приёма заказа, время готовки, количество кассиров и поваров.
+- ✅ **Валидация в реальном времени**: подсветка ошибок ввода, блокировка кнопки Start при неверных данных.
+- 🎬 **Визуализация потока**: анимированное отображение клиентов, заказов и работников в трёх зонах.
+- 🔢 **Счётчики**: количество клиентов в очереди, заказов в ожидании, заказов в линии выдачи.
+- ⏹️ **Корректная остановка**: отмена через `CancellationToken`, ожидание всех фоновых задач.
+- 🧵 **Потокобезопасность**: `ConcurrentQueue`, `SemaphoreSlim`, `Interlocked`, `Volatile`.
+- 📸 **Snapshot-based UI**: обновление интерфейса только через иммутабельные снимки с отсечением устаревших по версии.
+
+---
+
+## Архитектура
+
+Проект построен на **MVVM** с разделением на слои:
+
+```
+Views (WPF)
+    │ DataBinding
+ViewModels (MainViewModel, SettingsViewModel, VisualizerViewModel)
+    │ SnapshotPublished (event)
+Services (SimulationEngine)
+    │ WorkQueue / ServingLine
+Collections (WorkQueue<T>, ServingLine)
+    │
+Models (Customer, Order, OrderState, Simulation*)
+```
+
+**Принципы:**
+- UI никогда не обращается к движку напрямую — только через `MainViewModel`.
+- Движок публикует снимки (`SimulationSnapshot`), а не мутирует UI.
+- Все общие коллекции потокобезопасны.
+
+---
+
+## Как это работает
+
+### Жизненный цикл заказа
+
+```
+Ticketed → OnCarousel → Preparing → Prepared → ReadyForPickup → PickedUp
+```
+
+### Поток данных
+
+1. **Генератор клиентов** (`RunCustomerArrivalsAsync`) создаёт `Customer` каждые N мс и кладёт в `_orderLine`.
+2. **Кассир** (`RunOrderTakerAsync`) берёт клиента, создаёт `Order`, имитирует приём заказа, отдаёт чек, ждёт, пока клиент встанет в линию выдачи, и отправляет заказ в `_carousel`.
+3. **Повар** (`RunCookAsync`) берёт заказ с карусели, готовит, сигналит `KitchenPromise`.
+4. **Сервер** (`RunServerAsync`) ждёт готовности, ставит заказ на стойку, сигналит `CustomerPromise`.
+5. **Клиент** (`RunCustomerAsync`) ждёт готовности, забирает заказ, удаляется из системы.
+
+### Синхронизация
+
+| Механизм | Где используется |
+|---|---|
+| `TaskCompletionSource<Order>` | `Customer.Receipt` — передача заказа от кассира клиенту |
+| `TaskCompletionSource` | `Customer.InServingLine` — сигнал «клиент в линии» |
+| `TaskCompletionSource` | `Order.KitchenPromise` — готовность заказа |
+| `TaskCompletionSource` | `Order.CustomerPromise` — заказ на стойке |
+| `WorkQueue<T>` | Очереди `_orderLine`, `_carousel`, `_serverIntake` |
+| `Interlocked` | Генерация ID (`_customerSequence`, `_orderSequence`) |
+| `Volatile` | Чтение/запись `Order.State`, `_isRunning` |
+| `lock` | Создание снимка, работа с `ServingLine` |
+
+---
+
+## Требования
+
+- **OS**: Windows 10/11
+- **.NET SDK**: 9.0 или новее
+- **IDE** (опционально): Visual Studio 2022, JetBrains Rider, VS Code
+
+---
+
+## Сборка и запуск
+
+### Через .NET CLI
+
+```bash
+git clone https://github.com/your-username/FastFoodSimulator.git
+cd FastFoodSimulator
+
+dotnet restore
+dotnet build -c Release
+dotnet run -c Release
+```
+
+### Через Visual Studio
+
+1. Откройте `FastFoodSimulator.csproj` или `FastFoodSimulator.sln`.
+2. Нажмите **F5** (Debug) или **Ctrl+F5** (Release без отладки).
+
+### Публикация
+
+```bash
+dotnet publish -c Release -r win-x64 --self-contained false
+```
+
+Готовый `.exe` появится в `bin/Release/net9.0-windows/win-x64/publish/`.
+
+---
+
+## Настройки
+
+Все параметры задаются в интерфейсе до запуска симуляции:
+
+| Параметр | Описание | Мин | Макс | По умолчанию |
+|---|---|---|---|---|
+| **Customer Arrival Interval (ms)** | Как часто приходит новый клиент | 100 | 60000 | 1000 |
+| **Order Taking Interval (ms)** | Время приёма заказа кассиром | 100 | 60000 | 2500 |
+| **Order Fulfillment Interval (ms)** | Время готовки заказа поваром | 100 | 60000 | 3000 |
+| **Number of Order Takers** | Количество кассиров | 1 | 20 | 1 |
+| **Number of Cooks** | Количество поваров | 1 | 20 | 2 |
+
+> **Pickup Duration** (время получения заказа клиентом, 600 мс) задаётся в коде через `SimulationSettings.PickupDurationMs`.
+
+### Валидация
+
+- Все поля проверяются через `IDataErrorInfo`.
+- Неверные значения подсвечиваются красным.
+- Кнопка **Start** заблокирована, пока есть ошибки.
+- Сводное сообщение об ошибках отображается над визуализацией.
+
+---
+
+## Структура проекта
+
+```
+FastFoodSimulator/
+│
+├── Models/                          # Модели данных
+│   ├── Customer.cs                  # Клиент с TaskCompletionSource
+│   ├── Order.cs                     # Заказ с состоянием и promise'ами
+│   ├── OrderState.cs                # Enum состояний заказа
+│   ├── SettingsLimits.cs            # Константы границ
+│   ├── SimulationSettings.cs        # Параметры симуляции
+│   └── SimulationSnapshot.cs        # Иммутабельный снимок состояния
+│
+├── Collections/                     # Потокобезопасные коллекции
+│   ├── WorkQueue.cs                 # Producer-consumer очередь
+│   └── ServingLine.cs               # Очередь с удалением по ссылке
+│
+├── Commands/                        # WPF-команды
+│   ├── RelayCommand.cs              # Синхронная команда
+│   └── AsyncRelayCommand.cs         # Асинхронная команда
+│
+├── Infrastructure/
+│   └── UiDispatcher.cs              # Обёртка над Dispatcher
+│
+├── Services/                        # Бизнес-логика
+│   ├── ISimulationEngine.cs         # Интерфейс движка
+│   └── SimulationEngine.cs          # Реализация движка
+│
+├── ViewModels/                      # MVVM ViewModels
+│   ├── ViewModelBase.cs             # База с INotifyPropertyChanged
+│   ├── MainViewModel.cs             # Главная VM
+│   ├── SettingsViewModel.cs         # VM настроек с валидацией
+│   ├── VisualizerViewModel.cs       # VM визуализации
+│   └── VisualToken.cs               # Токены для визуализации
+│
+├── Views/                           # XAML-представления
+│   ├── MainWindow.xaml(.cs)         # Главное окно
+│   └── VisualizerView.xaml(.cs)     # Визуализатор
+│
+├── App.xaml(.cs)                    # Точка входа WPF
+└── FastFoodSimulator.csproj         # Файл проекта
+```
+
+---
+
+## Ключевые технические решения
+
+### 1. Producer-Consumer через `WorkQueue<T>`
+
+```csharp
+public sealed class WorkQueue<T>
+{
+    private readonly ConcurrentQueue<T> _items = new();
+    private readonly SemaphoreSlim _signal = new(0);
+
+    public void Enqueue(T item)
+    {
+        _items.Enqueue(item);   // 1. Сначала данные
+        _signal.Release();      // 2. Потом сигнал
+    }
+
+    public async Task<T> DequeueAsync(CancellationToken ct)
+    {
+        await _signal.WaitAsync(ct);
+        _items.TryDequeue(out var item);
+        return item!;
+    }
+}
+```
+
+**Почему так:**
+- `ConcurrentQueue<T>` — lock-free, масштабируется.
+- `SemaphoreSlim(0)` — асинхронное ожидание без блокировки потока.
+- Порядок `Enqueue → Release` гарантирует, что потребитель не проснётся раньше данных.
+
+### 2. Snapshot-based UI
+
+Движок не мутирует UI напрямую. Вместо этого:
+
+```csharp
+private void Publish()
+{
+    var handler = SnapshotPublished;
+    handler?.Invoke(CreateSnapshot());
+}
+```
+
+UI получает иммутабельный `SimulationSnapshot` и обновляется через `UiDispatcher.Invoke`. Устаревшие снимки отсекаются по `Version`.
+
+**Преимущества:**
+- Нет гонок между потоками движка и UI.
+- Легко тестировать (снимок — простая структура).
+- Можно добавить историю/откат.
+
+### 3. `TaskCompletionSource` для синхронизации
+
+Вместо ручных `ManualResetEvent` используются `TaskCompletionSource`:
+
+```csharp
+// Кассир
+customer.Receipt.TrySetResult(order);
+
+// Клиент
+var order = await customer.Receipt.Task;
+```
+
+**Преимущества:**
+- Асинхронность без блокировки потоков.
+- `TaskCreationOptions.RunContinuationsAsynchronously` — защита от дедлоков.
+
+### 4. Асинхронные команды
+
+`AsyncRelayCommand` блокирует повторный запуск через флаг `_isExecuting`:
+
+```csharp
+public bool CanExecute(object? parameter) => !_isExecuting && (_canExecute?.Invoke() ?? true);
+```
+
+### 5. Корректная остановка
+
+```csharp
+public async Task StopAsync()
+{
+    cts.Cancel();                              // 1. Отменяем токен
+    await _workers;                            // 2. Ждём воркеров
+    await Task.WhenAll(_customerTasks.Values); // 3. Ждём клиентов
+    cts.Dispose();
+}
+```
+
+Все циклы в движке используют `ct` — при отмене бросается `OperationCanceledException`, которую глотает `RunWorker`.
+
+---
